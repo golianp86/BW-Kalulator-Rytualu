@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kalkulator Rytuału – BloodWars</title>
+    <meta name="description" content="Kalkulator rytuału BloodWars: sumy KK/KS/KŻ/KD i łączna wartość kamieni." />
+    <!-- Tailwind (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 18 + ReactDOM UMD -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel to compile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useMemo, useEffect } = React;
+
+      // --- Dane poziomów ---
+      const LEVELS = [
+        "Dobry",
+        "Dobry+1",
+        "Dobry+2",
+        "Dobry+3",
+        "Dobry+4",
+        "Dobry+5",
+        "Doskonały",
+        "Doskonały+1",
+        "Doskonały+2",
+        "Doskonały+3",
+        "Doskonały+4",
+        "Doskonały+5"
+      ];
+
+      // Koszty przejścia NA dany poziom (z poprzedniego)
+      const COSTS = {
+        "Dobry+1": { "Kamień Krwi": 7, "Kamień Serca": 2, "Kamień Życia": 2, "Kamień Duszy": 0 },
+        "Dobry+2": { "Kamień Krwi": 9, "Kamień Serca": 3, "Kamień Życia": 3, "Kamień Duszy": 0 },
+        "Dobry+3": { "Kamień Krwi": 12, "Kamień Serca": 5, "Kamień Życia": 4, "Kamień Duszy": 0 },
+        "Dobry+4": { "Kamień Krwi": 21, "Kamień Serca": 8, "Kamień Życia": 6, "Kamień Duszy": 0 },
+        "Dobry+5": { "Kamień Krwi": 25, "Kamień Serca": 11, "Kamień Życia": 7, "Kamień Duszy": 0 },
+        "Doskonały": { "Kamień Krwi": 56, "Kamień Serca": 25, "Kamień Życia": 18, "Kamień Duszy": 0 },
+        "Doskonały+1": { "Kamień Krwi": 110, "Kamień Serca": 49, "Kamień Życia": 33, "Kamień Duszy": 2 },
+        "Doskonały+2": { "Kamień Krwi": 170, "Kamień Serca": 74, "Kamień Życia": 52, "Kamień Duszy": 4 },
+        "Doskonały+3": { "Kamień Krwi": 350, "Kamień Serca": 155, "Kamień Życia": 110, "Kamień Duszy": 9 },
+        "Doskonały+4": { "Kamień Krwi": 530, "Kamień Serca": 240, "Kamień Życia": 165, "Kamień Duszy": 16 },
+        "Doskonały+5": { "Kamień Krwi": 1050, "Kamień Serca": 475, "Kamień Życia": 325, "Kamień Duszy": 29 }
+      };
+
+      // Stałe ceny sztuk
+      const STONE_PRICES = {
+        "Kamień Krwi": 1,
+        "Kamień Serca": 10,
+        "Kamień Życia": 30,
+        "Kamień Duszy": 120
+      };
+
+      const ABBR = {
+        "Kamień Krwi": "KK",
+        "Kamień Serca": "KS",
+        "Kamień Życia": "KŻ",
+        "Kamień Duszy": "KD"
+      };
+
+      function BloodwarsRitualCalculator() {
+        const [start, setStart] = useState(LEVELS[0]);
+        const [target, setTarget] = useState(LEVELS[1]);
+        const [qty, setQty] = useState(1);
+        const [showDetails, setShowDetails] = useState(false);
+
+        // Minimalna różnica: 1 poziom (zablokuj)
+        useEffect(() => {
+          const s = LEVELS.indexOf(start);
+          const t = LEVELS.indexOf(target);
+          if (t <= s) setTarget(LEVELS[Math.min(s + 1, LEVELS.length - 1)]);
+        }, [start]);
+
+        const needed = useMemo(() => {
+          const result = { "Kamień Krwi": 0, "Kamień Serca": 0, "Kamień Życia": 0, "Kamień Duszy": 0 };
+          const s = LEVELS.indexOf(start);
+          const t = LEVELS.indexOf(target);
+          if (s === -1 || t === -1 || t <= s) return result;
+          for (let i = s + 1; i <= t; i++) {
+            const lvl = LEVELS[i];
+            const cost = COSTS[lvl] || {};
+            Object.entries(cost).forEach(([stone, amount]) => {
+              result[stone] = (result[stone] || 0) + amount * qty;
+            });
+          }
+          return result;
+        }, [start, target, qty]);
+
+        const totalValue = useMemo(() => {
+          return Object.entries(needed).reduce((sum, [stone, amount]) => sum + (STONE_PRICES[stone] || 0) * amount, 0);
+        }, [needed]);
+
+        return (
+          <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
+            <div className="max-w-3xl mx-auto">
+              <h1 className="text-2xl font-bold mb-4">🩸 Kalkulator Rytuału – BloodWars</h1>
+
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-2xl shadow">
+                  <label className="block text-xs text-gray-600 mb-1">Poziom początkowy</label>
+                  <select value={start} onChange={e => setStart(e.target.value)} className="w-full border rounded-xl p-2">
+                    {LEVELS.map((lvl, idx) => (
+                      <option key={lvl} value={lvl} disabled={idx >= LEVELS.length - 1}>{lvl}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-500 mt-1">Ostatni poziom jest zablokowany jako start.</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow">
+                  <label className="block text-xs text-gray-600 mb-1">Poziom docelowy</label>
+                  <select value={target} onChange={e => setTarget(e.target.value)} className="w-full border rounded-xl p-2">
+                    {LEVELS.map((lvl, idx) => (
+                      <option key={lvl} value={lvl} disabled={idx <= LEVELS.indexOf(start)}>{lvl}</option>
+                    ))}
+                  </select>
+                  {LEVELS.indexOf(target) <= LEVELS.indexOf(start) && (
+                    <p className="text-xs text-red-600 mt-1">Docelowy musi być wyższy co najmniej o 1 poziom.</p>
+                  )}
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow">
+                  <label className="block text-xs text-gray-600 mb-1">Ilość przedmiotów</label>
+                  <input type="number" min="1" value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-xl p-2" />
+                  <p className="text-[11px] text-gray-500 mt-1">Ceny stałe: KK=1, KS=10, KŻ=30, KD=120</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl shadow mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-semibold">Podsumowanie</h2>
+                  <button onClick={() => setShowDetails(v => !v)} className="px-3 py-2 rounded-xl border hover:bg-gray-50 text-sm">
+                    {showDetails ? "Ukryj szczegóły" : "Pokaż szczegóły"}
+                  </button>
+                </div>
+                <ul className="text-sm grid grid-cols-2 md:grid-cols-4 gap-y-1">
+                  <li>Łączna ilość <b>KK</b>: {needed["Kamień Krwi"]}</li>
+                  <li>Łączna ilość <b>KS</b>: {needed["Kamień Serca"]}</li>
+                  <li>Łączna ilość <b>KŻ</b>: {needed["Kamień Życia"]}</li>
+                  <li>Łączna ilość <b>KD</b>: {needed["Kamień Duszy"]}</li>
+                </ul>
+
+                <div className="mt-3 border-t pt-3">
+                  <p className="font-semibold">Łączna wartość kamieni: {totalValue}</p>
+                  <p className="text-xs text-gray-500 mt-1">(Stałe ceny: KK=1, KS=10, KŻ=30, KD=120)</p>
+                </div>
+              </div>
+
+              {showDetails && (
+                <div className="bg-white p-4 rounded-2xl shadow">
+                  <h3 className="font-semibold mb-2">Szczegóły kroków</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left border-b text-gray-500">
+                        <th className="py-1">Przejście</th>
+                        <th className="py-1">KK</th>
+                        <th className="py-1">KS</th>
+                        <th className="py-1">KŻ</th>
+                        <th className="py-1">KD</th>
+                        <th className="py-1">Wartość</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const rows = [];
+                        const s = LEVELS.indexOf(start);
+                        const t = LEVELS.indexOf(target);
+                        for (let i = s + 1; i <= t; i++) {
+                          const lvl = LEVELS[i];
+                          const c = COSTS[lvl] || {};
+                          const kk = c["Kamień Krwi"] || 0;
+                          const ks = c["Kamień Serca"] || 0;
+                          const kz = c["Kamień Życia"] || 0;
+                          const kd = c["Kamień Duszy"] || 0;
+                          const value = kk*STONE_PRICES["Kamień Krwi"] + ks*STONE_PRICES["Kamień Serca"] + kz*STONE_PRICES["Kamień Życia"] + kd*STONE_PRICES["Kamień Duszy"];
+                          rows.push(
+                            <tr key={lvl} className="border-b last:border-b-0">
+                              <td className="py-1">{LEVELS[i-1]} → {lvl} {qty>1 && <span className="text-xs text-gray-500">×{qty}</span>}</td>
+                              <td className="py-1">{kk*qty}</td>
+                              <td className="py-1">{ks*qty}</td>
+                              <td className="py-1">{kz*qty}</td>
+                              <td className="py-1">{kd*qty}</td>
+                              <td className="py-1">{value*qty}</td>
+                            </tr>
+                          );
+                        }
+                        return rows;
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 mt-4">Skróty: KK={ABBR["Kamień Krwi"]}, KS={ABBR["Kamień Serca"]}, KŻ={ABBR["Kamień Życia"]}, KD={ABBR["Kamień Duszy"]}</p>
+            <footer className="text-center text-xs text-gray-500 mt-8 mb-4">
+            Stworzony przez: <b>Iksboks (r21)</b>. Strona zawiera błędy? Napisz mi PW.
+          </footer>
+        </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<BloodwarsRitualCalculator />);
+    </script>
+  </body>
+</html>
