@@ -1,213 +1,472 @@
 <!doctype html>
 <html lang="pl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Kalkulator Rytuału – BloodWars</title>
-    <meta name="description" content="Kalkulator rytuału BloodWars: sumy KK/KS/KŻ/KD i łączna wartość kamieni." />
-    <!-- Tailwind (Play CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React 18 + ReactDOM UMD -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel to compile JSX in the browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  </head>
-  <body class="bg-gray-50">
-    <div id="root"></div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalkulator Rytuału - BloodWars</title>
+  <meta name="description" content="Kalkulator rytuału BloodWars: sumy KK/KS/KZ/KD i łączna wartość kamieni.">
+  <style>
+    :root {
+      --bg: #f9fafb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+    }
 
-    <script type="text/babel">
-      const { useState, useMemo, useEffect } = React;
+    * {
+      box-sizing: border-box;
+    }
 
-      // --- Dane poziomów ---
-      const LEVELS = [
-        "Dobry",
-        "Dobry+1",
-        "Dobry+2",
-        "Dobry+3",
-        "Dobry+4",
-        "Dobry+5",
-        "Doskonały",
-        "Doskonały+1",
-        "Doskonały+2",
-        "Doskonały+3",
-        "Doskonały+4",
-        "Doskonały+5"
-      ];
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-      // Koszty przejścia NA dany poziom (z poprzedniego)
-      const COSTS = {
-        "Dobry+1": { "Kamień Krwi": 7, "Kamień Serca": 2, "Kamień Życia": 2, "Kamień Duszy": 0 },
-        "Dobry+2": { "Kamień Krwi": 9, "Kamień Serca": 3, "Kamień Życia": 3, "Kamień Duszy": 0 },
-        "Dobry+3": { "Kamień Krwi": 12, "Kamień Serca": 5, "Kamień Życia": 4, "Kamień Duszy": 0 },
-        "Dobry+4": { "Kamień Krwi": 21, "Kamień Serca": 8, "Kamień Życia": 6, "Kamień Duszy": 0 },
-        "Dobry+5": { "Kamień Krwi": 25, "Kamień Serca": 11, "Kamień Życia": 7, "Kamień Duszy": 0 },
-        "Doskonały": { "Kamień Krwi": 56, "Kamień Serca": 25, "Kamień Życia": 18, "Kamień Duszy": 0 },
-        "Doskonały+1": { "Kamień Krwi": 110, "Kamień Serca": 49, "Kamień Życia": 33, "Kamień Duszy": 2 },
-        "Doskonały+2": { "Kamień Krwi": 170, "Kamień Serca": 74, "Kamień Życia": 52, "Kamień Duszy": 4 },
-        "Doskonały+3": { "Kamień Krwi": 350, "Kamień Serca": 155, "Kamień Życia": 110, "Kamień Duszy": 9 },
-        "Doskonały+4": { "Kamień Krwi": 530, "Kamień Serca": 240, "Kamień Życia": 165, "Kamień Duszy": 16 },
-        "Doskonały+5": { "Kamień Krwi": 1050, "Kamień Serca": 475, "Kamień Życia": 325, "Kamień Duszy": 29 }
-      };
+    .page {
+      min-height: 100vh;
+      padding: 24px;
+    }
 
-      // Stałe ceny sztuk
-      const STONE_PRICES = {
-        "Kamień Krwi": 1,
-        "Kamień Serca": 10,
-        "Kamień Życia": 30,
-        "Kamień Duszy": 120
-      };
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
 
-      const ABBR = {
-        "Kamień Krwi": "KK",
-        "Kamień Serca": "KS",
-        "Kamień Życia": "KŻ",
-        "Kamień Duszy": "KD"
-      };
+    h1 {
+      margin: 0 0 18px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
 
-      function BloodwarsRitualCalculator() {
-        const [start, setStart] = useState(LEVELS[0]);
-        const [target, setTarget] = useState(LEVELS[1]);
-        const [qty, setQty] = useState(1);
-        const [showDetails, setShowDetails] = useState(false);
+    h2, h3 {
+      margin: 0;
+    }
 
-        // Minimalna różnica: 1 poziom (zablokuj)
-        useEffect(() => {
-          const s = LEVELS.indexOf(start);
-          const t = LEVELS.indexOf(target);
-          if (t <= s) setTarget(LEVELS[Math.min(s + 1, LEVELS.length - 1)]);
-        }, [start]);
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
 
-        const needed = useMemo(() => {
-          const result = { "Kamień Krwi": 0, "Kamień Serca": 0, "Kamień Życia": 0, "Kamień Duszy": 0 };
-          const s = LEVELS.indexOf(start);
-          const t = LEVELS.indexOf(target);
-          if (s === -1 || t === -1 || t <= s) return result;
-          for (let i = s + 1; i <= t; i++) {
-            const lvl = LEVELS[i];
-            const cost = COSTS[lvl] || {};
-            Object.entries(cost).forEach(([stone, amount]) => {
-              result[stone] = (result[stone] || 0) + amount * qty;
-            });
-          }
-          return result;
-        }, [start, target, qty]);
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
 
-        const totalValue = useMemo(() => {
-          return Object.entries(needed).reduce((sum, [stone, amount]) => sum + (STONE_PRICES[stone] || 0) * amount, 0);
-        }, [needed]);
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
 
-        return (
-          <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
-            <div className="max-w-3xl mx-auto">
-              <h1 className="text-2xl font-bold mb-4">🩸 Kalkulator Rytuału – BloodWars</h1>
+    select,
+    input,
+    button {
+      width: 100%;
+      min-height: 42px;
+      font: inherit;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+    }
 
-              <div className="grid md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-2xl shadow">
-                  <label className="block text-xs text-gray-600 mb-1">Poziom początkowy</label>
-                  <select value={start} onChange={e => setStart(e.target.value)} className="w-full border rounded-xl p-2">
-                    {LEVELS.map((lvl, idx) => (
-                      <option key={lvl} value={lvl} disabled={idx >= LEVELS.length - 1}>{lvl}</option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-gray-500 mt-1">Ostatni poziom jest zablokowany jako start.</p>
-                </div>
+    button {
+      width: auto;
+      cursor: pointer;
+      padding-inline: 14px;
+    }
 
-                <div className="bg-white p-4 rounded-2xl shadow">
-                  <label className="block text-xs text-gray-600 mb-1">Poziom docelowy</label>
-                  <select value={target} onChange={e => setTarget(e.target.value)} className="w-full border rounded-xl p-2">
-                    {LEVELS.map((lvl, idx) => (
-                      <option key={lvl} value={lvl} disabled={idx <= LEVELS.indexOf(start)}>{lvl}</option>
-                    ))}
-                  </select>
-                  {LEVELS.indexOf(target) <= LEVELS.indexOf(start) && (
-                    <p className="text-xs text-red-600 mt-1">Docelowy musi być wyższy co najmniej o 1 poziom.</p>
-                  )}
-                </div>
+    button:hover {
+      background: #f3f4f6;
+    }
 
-                <div className="bg-white p-4 rounded-2xl shadow">
-                  <label className="block text-xs text-gray-600 mb-1">Ilość przedmiotów</label>
-                  <input type="number" min="1" value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value) || 1))} className="w-full border rounded-xl p-2" />
-                  <p className="text-[11px] text-gray-500 mt-1">Ceny stałe: KK=1, KS=10, KŻ=30, KD=120</p>
-                </div>
-              </div>
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
 
-              <div className="bg-white p-4 rounded-2xl shadow mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold">Podsumowanie</h2>
-                  <button onClick={() => setShowDetails(v => !v)} className="px-3 py-2 rounded-xl border hover:bg-gray-50 text-sm">
-                    {showDetails ? "Ukryj szczegóły" : "Pokaż szczegóły"}
-                  </button>
-                </div>
-                <ul className="text-sm grid grid-cols-2 md:grid-cols-4 gap-y-1">
-                  <li>Łączna ilość <b>KK</b>: {needed["Kamień Krwi"]}</li>
-                  <li>Łączna ilość <b>KS</b>: {needed["Kamień Serca"]}</li>
-                  <li>Łączna ilość <b>KŻ</b>: {needed["Kamień Życia"]}</li>
-                  <li>Łączna ilość <b>KD</b>: {needed["Kamień Duszy"]}</li>
-                </ul>
+    .error {
+      margin: 8px 0 0;
+      color: var(--danger);
+      font-size: 13px;
+    }
 
-                <div className="mt-3 border-t pt-3">
-                  <p className="font-semibold">Łączna wartość kamieni: {totalValue}</p>
-                  <p className="text-xs text-gray-500 mt-1">(Stałe ceny: KK=1, KS=10, KŻ=30, KD=120)</p>
-                </div>
-              </div>
+    .summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
 
-              {showDetails && (
-                <div className="bg-white p-4 rounded-2xl shadow">
-                  <h3 className="font-semibold mb-2">Szczegóły kroków</h3>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left border-b text-gray-500">
-                        <th className="py-1">Przejście</th>
-                        <th className="py-1">KK</th>
-                        <th className="py-1">KS</th>
-                        <th className="py-1">KŻ</th>
-                        <th className="py-1">KD</th>
-                        <th className="py-1">Wartość</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const rows = [];
-                        const s = LEVELS.indexOf(start);
-                        const t = LEVELS.indexOf(target);
-                        for (let i = s + 1; i <= t; i++) {
-                          const lvl = LEVELS[i];
-                          const c = COSTS[lvl] || {};
-                          const kk = c["Kamień Krwi"] || 0;
-                          const ks = c["Kamień Serca"] || 0;
-                          const kz = c["Kamień Życia"] || 0;
-                          const kd = c["Kamień Duszy"] || 0;
-                          const value = kk*STONE_PRICES["Kamień Krwi"] + ks*STONE_PRICES["Kamień Serca"] + kz*STONE_PRICES["Kamień Życia"] + kd*STONE_PRICES["Kamień Duszy"];
-                          rows.push(
-                            <tr key={lvl} className="border-b last:border-b-0">
-                              <td className="py-1">{LEVELS[i-1]} → {lvl} {qty>1 && <span className="text-xs text-gray-500">×{qty}</span>}</td>
-                              <td className="py-1">{kk*qty}</td>
-                              <td className="py-1">{ks*qty}</td>
-                              <td className="py-1">{kz*qty}</td>
-                              <td className="py-1">{kd*qty}</td>
-                              <td className="py-1">{value*qty}</td>
-                            </tr>
-                          );
-                        }
-                        return rows;
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+    .stones {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      font-size: 15px;
+    }
 
-              <p className="text-xs text-gray-500 mt-4">Skróty: KK={ABBR["Kamień Krwi"]}, KS={ABBR["Kamień Serca"]}, KŻ={ABBR["Kamień Życia"]}, KD={ABBR["Kamień Duszy"]}</p>
-            <footer className="text-center text-xs text-gray-500 mt-8 mb-4">
-            Stworzony przez: <b>Iksboks (r21)</b>. Strona zawiera błędy? Napisz mi PW.
-          </footer>
-        </div>
-          </div>
-        );
+    .total {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    footer {
+      margin: 32px 0 16px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 14px;
       }
 
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<BloodwarsRitualCalculator />);
-    </script>
-  </body>
+      h1 {
+        font-size: 22px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .summary-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .stones {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .stones {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="container">
+      <h1>Kalkulator Rytuału - BloodWars</h1>
+
+      <section class="grid" aria-label="Ustawienia kalkulatora">
+        <div class="card">
+          <label for="start">Poziom początkowy</label>
+          <select id="start"></select>
+          <p class="hint">Ostatni poziom jest zablokowany jako start.</p>
+        </div>
+
+        <div class="card">
+          <label for="target">Poziom docelowy</label>
+          <select id="target"></select>
+          <p id="targetError" class="error hidden">Docelowy musi być wyższy co najmniej o 1 poziom.</p>
+        </div>
+
+        <div class="card">
+          <label for="qty">Ilość przedmiotów</label>
+          <input id="qty" type="number" min="1" step="1" value="1">
+          <p class="hint">Ceny stałe: KK=1, KS=10, KZ=30, KD=120</p>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Podsumowanie">
+        <div class="summary-header">
+          <h2>Podsumowanie</h2>
+          <button id="toggleDetails" type="button">Pokaż szczegóły</button>
+        </div>
+
+        <ul class="stones">
+          <li>Łączna ilość <b>KK</b>: <span id="sumKk">0</span></li>
+          <li>Łączna ilość <b>KS</b>: <span id="sumKs">0</span></li>
+          <li>Łączna ilość <b>KŻ</b>: <span id="sumKz">0</span></li>
+          <li>Łączna ilość <b>KD</b>: <span id="sumKd">0</span></li>
+        </ul>
+
+        <div class="total">Łączna wartość kamieni: <span id="totalValue">0</span></div>
+        <p class="hint">(Stałe ceny: KK=1, KS=10, KŻ=30, KD=120)</p>
+      </section>
+
+      <section id="detailsCard" class="card hidden" style="margin-top: 24px;" aria-label="Szczegóły kroków">
+        <h3 style="margin-bottom: 10px;">Szczegóły kroków</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Przejście</th>
+                <th>KK</th>
+                <th>KS</th>
+                <th>KŻ</th>
+                <th>KD</th>
+                <th>Wartość</th>
+              </tr>
+            </thead>
+            <tbody id="detailsRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="hint">Skróty: KK=Kamień Krwi, KS=Kamień Serca, KŻ=Kamień Życia, KD=Kamień Duszy</p>
+
+      <footer>
+        Stworzony przez: <b>Iksboks (r21)</b>. Strona zawiera błędy? Napisz mi PW.
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    const LEVELS = [
+      "Dobry",
+      "Dobry+1",
+      "Dobry+2",
+      "Dobry+3",
+      "Dobry+4",
+      "Dobry+5",
+      "Doskonały",
+      "Doskonały+1",
+      "Doskonały+2",
+      "Doskonały+3",
+      "Doskonały+4",
+      "Doskonały+5"
+    ];
+
+    const COSTS = {
+      "Dobry+1": { kk: 7, ks: 2, kz: 2, kd: 0 },
+      "Dobry+2": { kk: 9, ks: 3, kz: 3, kd: 0 },
+      "Dobry+3": { kk: 12, ks: 5, kz: 4, kd: 0 },
+      "Dobry+4": { kk: 21, ks: 8, kz: 6, kd: 0 },
+      "Dobry+5": { kk: 25, ks: 11, kz: 7, kd: 0 },
+      "Doskonały": { kk: 56, ks: 25, kz: 18, kd: 0 },
+      "Doskonały+1": { kk: 110, ks: 49, kz: 33, kd: 2 },
+      "Doskonały+2": { kk: 170, ks: 74, kz: 52, kd: 4 },
+      "Doskonały+3": { kk: 350, ks: 155, kz: 110, kd: 9 },
+      "Doskonały+4": { kk: 530, ks: 240, kz: 165, kd: 16 },
+      "Doskonały+5": { kk: 1050, ks: 475, kz: 325, kd: 29 }
+    };
+
+    const PRICES = {
+      kk: 1,
+      ks: 10,
+      kz: 30,
+      kd: 120
+    };
+
+    const state = {
+      start: LEVELS[0],
+      target: LEVELS[1],
+      qty: 1,
+      showDetails: false
+    };
+
+    const el = {
+      start: document.getElementById("start"),
+      target: document.getElementById("target"),
+      qty: document.getElementById("qty"),
+      targetError: document.getElementById("targetError"),
+      sumKk: document.getElementById("sumKk"),
+      sumKs: document.getElementById("sumKs"),
+      sumKz: document.getElementById("sumKz"),
+      sumKd: document.getElementById("sumKd"),
+      totalValue: document.getElementById("totalValue"),
+      toggleDetails: document.getElementById("toggleDetails"),
+      detailsCard: document.getElementById("detailsCard"),
+      detailsRows: document.getElementById("detailsRows")
+    };
+
+    function fillSelects() {
+      el.start.innerHTML = "";
+      el.target.innerHTML = "";
+
+      LEVELS.forEach((level, index) => {
+        const startOption = new Option(level, level);
+        startOption.disabled = index >= LEVELS.length - 1;
+        el.start.add(startOption);
+
+        const targetOption = new Option(level, level);
+        el.target.add(targetOption);
+      });
+
+      el.start.value = state.start;
+      el.target.value = state.target;
+    }
+
+    function fixTargetIfNeeded() {
+      const startIndex = LEVELS.indexOf(state.start);
+      const targetIndex = LEVELS.indexOf(state.target);
+
+      if (targetIndex <= startIndex) {
+        state.target = LEVELS[Math.min(startIndex + 1, LEVELS.length - 1)];
+      }
+    }
+
+    function updateTargetOptions() {
+      const startIndex = LEVELS.indexOf(state.start);
+
+      Array.from(el.target.options).forEach((option, index) => {
+        option.disabled = index <= startIndex;
+      });
+
+      el.target.value = state.target;
+    }
+
+    function calculateNeeded() {
+      const result = { kk: 0, ks: 0, kz: 0, kd: 0 };
+      const startIndex = LEVELS.indexOf(state.start);
+      const targetIndex = LEVELS.indexOf(state.target);
+
+      if (startIndex === -1 || targetIndex === -1 || targetIndex <= startIndex) {
+        return result;
+      }
+
+      for (let i = startIndex + 1; i <= targetIndex; i += 1) {
+        const cost = COSTS[LEVELS[i]] || {};
+        result.kk += (cost.kk || 0) * state.qty;
+        result.ks += (cost.ks || 0) * state.qty;
+        result.kz += (cost.kz || 0) * state.qty;
+        result.kd += (cost.kd || 0) * state.qty;
+      }
+
+      return result;
+    }
+
+    function calculateValue(cost) {
+      return cost.kk * PRICES.kk + cost.ks * PRICES.ks + cost.kz * PRICES.kz + cost.kd * PRICES.kd;
+    }
+
+    function renderDetails() {
+      const startIndex = LEVELS.indexOf(state.start);
+      const targetIndex = LEVELS.indexOf(state.target);
+      const rows = [];
+
+      for (let i = startIndex + 1; i <= targetIndex; i += 1) {
+        const level = LEVELS[i];
+        const cost = COSTS[level] || { kk: 0, ks: 0, kz: 0, kd: 0 };
+        const multiplied = {
+          kk: cost.kk * state.qty,
+          ks: cost.ks * state.qty,
+          kz: cost.kz * state.qty,
+          kd: cost.kd * state.qty
+        };
+
+        rows.push(`
+          <tr>
+            <td>${LEVELS[i - 1]} -&gt; ${level}${state.qty > 1 ? ` <small>x${state.qty}</small>` : ""}</td>
+            <td>${multiplied.kk}</td>
+            <td>${multiplied.ks}</td>
+            <td>${multiplied.kz}</td>
+            <td>${multiplied.kd}</td>
+            <td>${calculateValue(multiplied)}</td>
+          </tr>
+        `);
+      }
+
+      el.detailsRows.innerHTML = rows.join("");
+    }
+
+    function render() {
+      fixTargetIfNeeded();
+      updateTargetOptions();
+
+      const needed = calculateNeeded();
+      const total = calculateValue(needed);
+      const isInvalid = LEVELS.indexOf(state.target) <= LEVELS.indexOf(state.start);
+
+      el.targetError.classList.toggle("hidden", !isInvalid);
+      el.sumKk.textContent = needed.kk;
+      el.sumKs.textContent = needed.ks;
+      el.sumKz.textContent = needed.kz;
+      el.sumKd.textContent = needed.kd;
+      el.totalValue.textContent = total;
+      el.detailsCard.classList.toggle("hidden", !state.showDetails);
+      el.toggleDetails.textContent = state.showDetails ? "Ukryj szczegóły" : "Pokaż szczegóły";
+
+      renderDetails();
+    }
+
+    el.start.addEventListener("change", () => {
+      state.start = el.start.value;
+      render();
+    });
+
+    el.target.addEventListener("change", () => {
+      state.target = el.target.value;
+      render();
+    });
+
+    el.qty.addEventListener("input", () => {
+      const parsed = Number(el.qty.value);
+      state.qty = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
+      el.qty.value = state.qty;
+      render();
+    });
+
+    el.toggleDetails.addEventListener("click", () => {
+      state.showDetails = !state.showDetails;
+      render();
+    });
+
+    fillSelects();
+    render();
+  </script>
+</body>
 </html>
