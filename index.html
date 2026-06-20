@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kalkulator Rytuału - BloodWars</title>
-  <meta name="description" content="Kalkulator rytuału BloodWars: sumy KK/KS/KZ/KD i łączna wartość kamieni.">
+
   <style>
     :root {
       --bg: #f9fafb;
@@ -21,452 +21,288 @@
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
 
     .page {
       min-height: 100vh;
-      padding: 24px;
+      padding: 20px;
     }
 
     .container {
       max-width: 900px;
-      margin: 0 auto;
+      margin: auto;
     }
 
-    h1 {
-      margin: 0 0 18px;
-      font-size: 28px;
-      line-height: 1.2;
-    }
-
-    h2, h3 {
-      margin: 0;
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 15px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(3,1fr);
+      gap: 15px;
     }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    select,
-    input,
-    button {
+    select,input,button {
       width: 100%;
-      min-height: 42px;
-      font: inherit;
+      padding: 10px;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #fff;
-      color: var(--text);
-      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 14px;
     }
 
     button {
-      width: auto;
       cursor: pointer;
-      padding-inline: 14px;
-    }
-
-    button:hover {
-      background: #f3f4f6;
-    }
-
-    .hint {
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .error {
-      margin: 8px 0 0;
-      color: var(--danger);
-      font-size: 13px;
-    }
-
-    .summary-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .stones {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      padding: 0;
-      margin: 0;
-      list-style: none;
-      font-size: 15px;
-    }
-
-    .total {
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-      font-weight: 700;
-      font-size: 17px;
-    }
-
-    .table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 620px;
-      font-size: 14px;
     }
 
-    th,
-    td {
-      padding: 8px 6px;
-      border-bottom: 1px solid var(--border);
+    th,td {
+      border-bottom: 1px solid #ddd;
+      padding: 8px;
       text-align: left;
-      white-space: nowrap;
-    }
-
-    th {
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    footer {
-      margin: 32px 0 16px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 12px;
     }
 
     .hidden {
       display: none;
     }
 
-    @media (max-width: 760px) {
-      .page {
-        padding: 14px;
+    @media(max-width:768px){
+      .grid{
+        grid-template-columns:1fr;
       }
 
-      h1 {
-        font-size: 22px;
-      }
-
-      .grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .summary-header {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      button {
-        width: 100%;
-      }
-
-      .stones {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 420px) {
-      .stones {
-        grid-template-columns: 1fr;
-      }
-
-      .card {
-        padding: 14px;
+      table{
+        display:block;
+        overflow-x:auto;
       }
     }
   </style>
 </head>
+
 <body>
-  <main class="page">
-    <div class="container">
-      <h1>Kalkulator Rytuału - BloodWars</h1>
 
-      <section class="grid" aria-label="Ustawienia kalkulatora">
-        <div class="card">
-          <label for="start">Poziom początkowy</label>
-          <select id="start"></select>
-          <p class="hint">Ostatni poziom jest zablokowany jako start.</p>
-        </div>
+<div class="page">
+  <div class="container">
 
-        <div class="card">
-          <label for="target">Poziom docelowy</label>
-          <select id="target"></select>
-          <p id="targetError" class="error hidden">Docelowy musi być wyższy co najmniej o 1 poziom.</p>
-        </div>
+    <h1>🩸 Kalkulator Rytuału – BloodWars</h1>
 
-        <div class="card">
-          <label for="qty">Ilość przedmiotów</label>
-          <input id="qty" type="number" min="1" step="1" value="1">
-          <p class="hint">Ceny stałe: KK=1, KS=10, KZ=30, KD=120</p>
-        </div>
-      </section>
+    <div class="grid">
 
-      <section class="card" aria-label="Podsumowanie">
-        <div class="summary-header">
-          <h2>Podsumowanie</h2>
-          <button id="toggleDetails" type="button">Pokaż szczegóły</button>
-        </div>
+      <div class="card">
+        <label>Poziom początkowy</label>
+        <select id="start"></select>
+      </div>
 
-        <ul class="stones">
-          <li>Łączna ilość <b>KK</b>: <span id="sumKk">0</span></li>
-          <li>Łączna ilość <b>KS</b>: <span id="sumKs">0</span></li>
-          <li>Łączna ilość <b>KŻ</b>: <span id="sumKz">0</span></li>
-          <li>Łączna ilość <b>KD</b>: <span id="sumKd">0</span></li>
-        </ul>
+      <div class="card">
+        <label>Poziom docelowy</label>
+        <select id="target"></select>
+      </div>
 
-        <div class="total">Łączna wartość kamieni: <span id="totalValue">0</span></div>
-        <p class="hint">(Stałe ceny: KK=1, KS=10, KŻ=30, KD=120)</p>
-      </section>
+      <div class="card">
+        <label>Ilość przedmiotów</label>
+        <input type="number" id="qty" min="1" value="1">
+      </div>
 
-      <section id="detailsCard" class="card hidden" style="margin-top: 24px;" aria-label="Szczegóły kroków">
-        <h3 style="margin-bottom: 10px;">Szczegóły kroków</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Przejście</th>
-                <th>KK</th>
-                <th>KS</th>
-                <th>KŻ</th>
-                <th>KD</th>
-                <th>Wartość</th>
-              </tr>
-            </thead>
-            <tbody id="detailsRows"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <p class="hint">Skróty: KK=Kamień Krwi, KS=Kamień Serca, KŻ=Kamień Życia, KD=Kamień Duszy</p>
-
-      <footer>
-        Stworzony przez: <b>Iksboks (r21)</b>. Strona zawiera błędy? Napisz mi PW.
-      </footer>
     </div>
-  </main>
 
-  <script>
-    const LEVELS = [
-      "Dobry",
-      "Dobry+1",
-      "Dobry+2",
-      "Dobry+3",
-      "Dobry+4",
-      "Dobry+5",
-      "Doskonały",
-      "Doskonały+1",
-      "Doskonały+2",
-      "Doskonały+3",
-      "Doskonały+4",
-      "Doskonały+5"
-    ];
+    <div class="card">
 
-    const COSTS = {
-      "Dobry+1": { kk: 7, ks: 2, kz: 2, kd: 0 },
-      "Dobry+2": { kk: 9, ks: 3, kz: 3, kd: 0 },
-      "Dobry+3": { kk: 12, ks: 5, kz: 4, kd: 0 },
-      "Dobry+4": { kk: 21, ks: 8, kz: 6, kd: 0 },
-      "Dobry+5": { kk: 25, ks: 11, kz: 7, kd: 0 },
-      "Doskonały": { kk: 56, ks: 25, kz: 18, kd: 0 },
-      "Doskonały+1": { kk: 110, ks: 49, kz: 33, kd: 2 },
-      "Doskonały+2": { kk: 170, ks: 74, kz: 52, kd: 4 },
-      "Doskonały+3": { kk: 350, ks: 155, kz: 110, kd: 9 },
-      "Doskonały+4": { kk: 530, ks: 240, kz: 165, kd: 16 },
-      "Doskonały+5": { kk: 1050, ks: 475, kz: 325, kd: 29 }
-    };
+      <button id="toggleDetails">
+        Pokaż szczegóły
+      </button>
 
-    const PRICES = {
-      kk: 1,
-      ks: 10,
-      kz: 30,
-      kd: 120
-    };
+      <h3>Podsumowanie</h3>
 
-    const state = {
-      start: LEVELS[0],
-      target: LEVELS[1],
-      qty: 1,
-      showDetails: false
-    };
+      <p>KK: <span id="kk">0</span></p>
+      <p>KS: <span id="ks">0</span></p>
+      <p>KŻ: <span id="kz">0</span></p>
+      <p>KD: <span id="kd">0</span></p>
 
-    const el = {
-      start: document.getElementById("start"),
-      target: document.getElementById("target"),
-      qty: document.getElementById("qty"),
-      targetError: document.getElementById("targetError"),
-      sumKk: document.getElementById("sumKk"),
-      sumKs: document.getElementById("sumKs"),
-      sumKz: document.getElementById("sumKz"),
-      sumKd: document.getElementById("sumKd"),
-      totalValue: document.getElementById("totalValue"),
-      toggleDetails: document.getElementById("toggleDetails"),
-      detailsCard: document.getElementById("detailsCard"),
-      detailsRows: document.getElementById("detailsRows")
-    };
+      <h2>Łączna wartość: <span id="value">0</span></h2>
 
-    function fillSelects() {
-      el.start.innerHTML = "";
-      el.target.innerHTML = "";
+    </div>
 
-      LEVELS.forEach((level, index) => {
-        const startOption = new Option(level, level);
-        startOption.disabled = index >= LEVELS.length - 1;
-        el.start.add(startOption);
+    <div class="card hidden" id="details">
 
-        const targetOption = new Option(level, level);
-        el.target.add(targetOption);
-      });
+      <table>
 
-      el.start.value = state.start;
-      el.target.value = state.target;
-    }
+        <thead>
+        <tr>
+          <th>Przejście</th>
+          <th>KK</th>
+          <th>KS</th>
+          <th>KŻ</th>
+          <th>KD</th>
+          <th>Wartość</th>
+        </tr>
+        </thead>
 
-    function fixTargetIfNeeded() {
-      const startIndex = LEVELS.indexOf(state.start);
-      const targetIndex = LEVELS.indexOf(state.target);
+        <tbody id="rows"></tbody>
 
-      if (targetIndex <= startIndex) {
-        state.target = LEVELS[Math.min(startIndex + 1, LEVELS.length - 1)];
-      }
-    }
+      </table>
 
-    function updateTargetOptions() {
-      const startIndex = LEVELS.indexOf(state.start);
+    </div>
 
-      Array.from(el.target.options).forEach((option, index) => {
-        option.disabled = index <= startIndex;
-      });
+  </div>
+</div>
 
-      el.target.value = state.target;
-    }
+<script>
 
-    function calculateNeeded() {
-      const result = { kk: 0, ks: 0, kz: 0, kd: 0 };
-      const startIndex = LEVELS.indexOf(state.start);
-      const targetIndex = LEVELS.indexOf(state.target);
+const LEVELS = [
+"Dobry",
+"Dobry+1",
+"Dobry+2",
+"Dobry+3",
+"Dobry+4",
+"Dobry+5",
+"Doskonały",
+"Doskonały+1",
+"Doskonały+2",
+"Doskonały+3",
+"Doskonały+4",
+"Doskonały+5"
+];
 
-      if (startIndex === -1 || targetIndex === -1 || targetIndex <= startIndex) {
-        return result;
-      }
+const COSTS = {
+"Dobry+1": {kk:7,ks:2,kz:2,kd:0},
+"Dobry+2": {kk:9,ks:3,kz:3,kd:0},
+"Dobry+3": {kk:12,ks:5,kz:4,kd:0},
+"Dobry+4": {kk:21,ks:8,kz:6,kd:0},
+"Dobry+5": {kk:25,ks:11,kz:7,kd:0},
+"Doskonały": {kk:56,ks:25,kz:18,kd:0},
+"Doskonały+1": {kk:110,ks:49,kz:33,kd:2},
+"Doskonały+2": {kk:170,ks:74,kz:52,kd:4},
+"Doskonały+3": {kk:350,ks:155,kz:110,kd:9},
+"Doskonały+4": {kk:530,ks:240,kz:165,kd:16},
+"Doskonały+5": {kk:1050,ks:475,kz:325,kd:29}
+};
 
-      for (let i = startIndex + 1; i <= targetIndex; i += 1) {
-        const cost = COSTS[LEVELS[i]] || {};
-        result.kk += (cost.kk || 0) * state.qty;
-        result.ks += (cost.ks || 0) * state.qty;
-        result.kz += (cost.kz || 0) * state.qty;
-        result.kd += (cost.kd || 0) * state.qty;
-      }
+const PRICES = {
+kk:1,
+ks:10,
+kz:30,
+kd:120
+};
 
-      return result;
-    }
+const start = document.getElementById("start");
+const target = document.getElementById("target");
+const qty = document.getElementById("qty");
 
-    function calculateValue(cost) {
-      return cost.kk * PRICES.kk + cost.ks * PRICES.ks + cost.kz * PRICES.kz + cost.kd * PRICES.kd;
-    }
+LEVELS.forEach((lvl,i)=>{
 
-    function renderDetails() {
-      const startIndex = LEVELS.indexOf(state.start);
-      const targetIndex = LEVELS.indexOf(state.target);
-      const rows = [];
+let a=document.createElement("option");
+a.value=lvl;
+a.textContent=lvl;
 
-      for (let i = startIndex + 1; i <= targetIndex; i += 1) {
-        const level = LEVELS[i];
-        const cost = COSTS[level] || { kk: 0, ks: 0, kz: 0, kd: 0 };
-        const multiplied = {
-          kk: cost.kk * state.qty,
-          ks: cost.ks * state.qty,
-          kz: cost.kz * state.qty,
-          kd: cost.kd * state.qty
-        };
+if(i===LEVELS.length-1){
+a.disabled=true;
+}
 
-        rows.push(`
-          <tr>
-            <td>${LEVELS[i - 1]} -&gt; ${level}${state.qty > 1 ? ` <small>x${state.qty}</small>` : ""}</td>
-            <td>${multiplied.kk}</td>
-            <td>${multiplied.ks}</td>
-            <td>${multiplied.kz}</td>
-            <td>${multiplied.kd}</td>
-            <td>${calculateValue(multiplied)}</td>
-          </tr>
-        `);
-      }
+start.appendChild(a);
 
-      el.detailsRows.innerHTML = rows.join("");
-    }
+let b=document.createElement("option");
+b.value=lvl;
+b.textContent=lvl;
 
-    function render() {
-      fixTargetIfNeeded();
-      updateTargetOptions();
+target.appendChild(b);
 
-      const needed = calculateNeeded();
-      const total = calculateValue(needed);
-      const isInvalid = LEVELS.indexOf(state.target) <= LEVELS.indexOf(state.start);
+});
 
-      el.targetError.classList.toggle("hidden", !isInvalid);
-      el.sumKk.textContent = needed.kk;
-      el.sumKs.textContent = needed.ks;
-      el.sumKz.textContent = needed.kz;
-      el.sumKd.textContent = needed.kd;
-      el.totalValue.textContent = total;
-      el.detailsCard.classList.toggle("hidden", !state.showDetails);
-      el.toggleDetails.textContent = state.showDetails ? "Ukryj szczegóły" : "Pokaż szczegóły";
+start.value=LEVELS[0];
+target.value=LEVELS[1];
 
-      renderDetails();
-    }
+function update(){
 
-    el.start.addEventListener("change", () => {
-      state.start = el.start.value;
-      render();
-    });
+let s=LEVELS.indexOf(start.value);
+let t=LEVELS.indexOf(target.value);
 
-    el.target.addEventListener("change", () => {
-      state.target = el.target.value;
-      render();
-    });
+if(t<=s){
+target.value=LEVELS[s+1];
+t=s+1;
+}
 
-    el.qty.addEventListener("input", () => {
-      const parsed = Number(el.qty.value);
-      state.qty = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
-      el.qty.value = state.qty;
-      render();
-    });
+let result={
+kk:0,
+ks:0,
+kz:0,
+kd:0
+};
 
-    el.toggleDetails.addEventListener("click", () => {
-      state.showDetails = !state.showDetails;
-      render();
-    });
+let rows="";
 
-    fillSelects();
-    render();
-  </script>
+for(let i=s+1;i<=t;i++){
+
+let c=COSTS[LEVELS[i]];
+
+result.kk+=c.kk;
+result.ks+=c.ks;
+result.kz+=c.kz;
+result.kd+=c.kd;
+
+let value=
+c.kk*PRICES.kk+
+c.ks*PRICES.ks+
+c.kz*PRICES.kz+
+c.kd*PRICES.kd;
+
+rows+=`
+<tr>
+<td>${LEVELS[i-1]} → ${LEVELS[i]}</td>
+<td>${c.kk*qty.value}</td>
+<td>${c.ks*qty.value}</td>
+<td>${c.kz*qty.value}</td>
+<td>${c.kd*qty.value}</td>
+<td>${value*qty.value}</td>
+</tr>
+`;
+
+}
+
+result.kk*=qty.value;
+result.ks*=qty.value;
+result.kz*=qty.value;
+result.kd*=qty.value;
+
+document.getElementById("kk").textContent=result.kk;
+document.getElementById("ks").textContent=result.ks;
+document.getElementById("kz").textContent=result.kz;
+document.getElementById("kd").textContent=result.kd;
+
+let total=
+result.kk*PRICES.kk+
+result.ks*PRICES.ks+
+result.kz*PRICES.kz+
+result.kd*PRICES.kd;
+
+document.getElementById("value").textContent=total;
+
+document.getElementById("rows").innerHTML=rows;
+}
+
+start.addEventListener("change",update);
+target.addEventListener("change",update);
+qty.addEventListener("input",update);
+
+document.getElementById("toggleDetails").addEventListener("click",()=>{
+
+document.getElementById("details").classList.toggle("hidden");
+
+});
+
+update();
+
+</script>
+
 </body>
 </html>
